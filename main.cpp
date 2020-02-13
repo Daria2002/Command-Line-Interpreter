@@ -17,6 +17,7 @@
 #include <stdio.h>
 #include <ctime>
 #include <chrono>
+#include <unordered_set>
 
 class Base {
     public: 
@@ -44,6 +45,10 @@ class Base {
         std::string _time;
         std::string _date;
         std::string _name;
+
+        bool operator==(const Base& p) const { 
+            return _name == p._name && _time == p._time && _date == p._date; 
+        } 
 };
 
 class File : public Base {
@@ -51,11 +56,23 @@ class File : public Base {
         File(std::string name) : Base(name) { }
 };
 
+struct dir_hash {
+    std::size_t operator()(const Dir& dir) const {
+        return std::hash<std::string>()(dir._name);
+    }
+};
+
+struct file_hash {
+    std::size_t operator()(const File& file) const {
+        return std::hash<std::string>()(file._name);
+    }
+};
+
 class Dir : public Base {
     public: 
         Dir(std::string name) : Base(name) { }
-        std::vector<Dir> _dirs;
-        std::vector<File> _files;
+        std::unordered_set<Dir, dir_hash> _dirs;
+        std::unordered_set<File, file_hash> _files;
 };
 
 inline void print_date_time(const Base* current_dir_ptr) {
@@ -99,34 +116,31 @@ void call_dir(Dir* current_dir_ptr, std::string param) {
 
 void call_mkfile(Dir* current_dir_ptr, std::string param) {
     File file(param);
-    current_dir_ptr->_files.push_back(file);
+    current_dir_ptr->_files.insert(file);
 }
 
 void call_mkdir(Dir* current_dir_ptr, std::string param) {
     Dir dir(param);
-    current_dir_ptr->_dirs.push_back(dir);
+    current_dir_ptr->_dirs.insert(dir);
 }
 
 void call_rmdir(Dir* current_dir_ptr, std::string param) {
-    std::vector<Dir> dirs;
     for(const Dir& el : current_dir_ptr->_dirs) {
-        if(el._name != param) {
-            dirs.push_back(el);
+        if(el._name == param) {
+            current_dir_ptr->_dirs.erase(el);
+            return;
         }
     }
-    current_dir_ptr->_dirs = dirs;
 }
 
 void call_rmfile(Dir* current_dir_ptr, std::string param) {
-    std::vector<File> files;
     for(const File& el : current_dir_ptr->_files) {
-        if(el._name != param) {
-            files.push_back(el);
+        if(el._name == param) {
+            current_dir_ptr->_files.erase(el);
+            return;
         }
     }
-    current_dir_ptr->_files = files;
 }
-
 
 class File_System {
     public:

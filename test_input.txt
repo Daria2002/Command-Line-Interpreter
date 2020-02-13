@@ -4,3 +4,5 @@ cd folder1
 dir
 mkfile file1.txt
 dir
+rmfile file1.txt
+dir
